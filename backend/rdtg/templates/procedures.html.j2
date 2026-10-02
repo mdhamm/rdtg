@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Test Procedures — {{ config.name }}</title>
+<style>
+  :root { --ink:#1d2433; --muted:#5b6578; --line:#d8dde6; --bg:#fff; --accent:#2457c5; --pos:#1d7a46; --neg:#a8321e; --warn:#8a6100; }
+  body { font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+  h1 { font-size: 24px; margin: 0 0 4px; } h2 { font-size: 18px; margin-top: 40px; border-bottom: 2px solid var(--ink); padding-bottom: 4px; }
+  h3 { font-size: 16px; margin: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 16px; }
+  th, td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #f3f5f9; font-weight: 600; }
+  .meta td:first-child { width: 220px; color: var(--muted); }
+  .tc { border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; margin: 18px 0; page-break-inside: avoid; }
+  .tc header { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
+  .badge { font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 2px 8px; border-radius: 10px; color: #fff; }
+  .positive { background: var(--pos); } .negative { background: var(--neg); }
+  .req { background: #f6f8fc; border-left: 3px solid var(--accent); padding: 6px 10px; margin: 6px 0; }
+  .warn { color: var(--warn); } .muted { color: var(--muted); }
+  .phase-setup td:nth-child(2) { color: var(--muted); } .phase-stimulus { background: #fffbe8; } .phase-verify { background: #eef7f1; }
+  .pf { width: 48px; text-align: center; } .num { width: 28px; text-align: right; }
+  code { font-size: 12px; background: #f3f5f9; padding: 1px 4px; border-radius: 3px; }
+  .ok { color: var(--pos); } .no { color: var(--neg); }
+  @media print { body { padding: 0; } .tc { border-color: #999; } }
+</style>
+</head>
+<body>
+<h1>Test Procedures — {{ config.name }}</h1>
+<table class="meta">
+  <tr><td>Generated</td><td>{{ generated }}</td></tr>
+  <tr><td>Strategy</td><td>{{ strategy }}</td></tr>
+  <tr><td>Test cases</td><td>{{ suite.tests | length }} ({{ n_pos }} positive, {{ n_neg }} negative)</td></tr>
+  <tr><td>Estimated execution time</td><td>{{ suite.est_ms | fmt_ms }}</td></tr>
+</table>
+
+<h2>1. Requirements traceability</h2>
+<table>
+  <tr><th>Requirement</th><th>Text</th><th>Verified by</th><th>Used as setup path in</th></tr>
+  {% for r in project.requirements %}
+  <tr><td><b>{{ r.id }}</b></td><td>{{ r.text }}</td>
+      <td>{% if trace.get(r.id) %}{% for t in trace[r.id] %}<a href="#{{ t.id }}">{{ t.id }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}<b class="no">NOT COVERED</b>{% endif %}</td>
+      <td class="muted">{{ (setup_use.get(r.id) or []) | join(", ") or "—" }}</td></tr>
+  {% endfor %}
+</table>
+{% if suite.issues %}
+<ul>{% for i in suite.issues %}<li class="warn"><b>{{ i.level | upper }}</b> {{ i.requirement_id or "" }} <code>{{ i.code }}</code> {{ i.message }}</li>{% endfor %}</ul>
+{% endif %}
+{% if suite.untestable %}
+<h3>Combinations not tested</h3>
+<p class="muted">The selected strategy asked for these combinations, but they cannot occur on the system:</p>
+<table>
+  <tr><th>Requirement</th><th>Combination</th><th>Why not</th></tr>
+  {% for u in suite.untestable %}
+  <tr><td><b>{{ u.requirement_id }}</b></td>
+      <td>{% for k, v in u.assignment.items() %}<code>{{ k }}</code> <span class="{{ 'ok' if v else 'no' }}">{{ "✔" if v else "✘" }}</span>{% if not loop.last %}, {% endif %}{% endfor %}
+          {% if u.note %}<div class="muted"><i>{{ u.note }}</i></div>{% endif %}</td>
+      <td>{{ u.reason }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+<h2>2. Test procedures</h2>
+{% for t in suite.tests %}
+{% set r = reqs[t.requirement_id] %}
+<section class="tc" id="{{ t.id }}">
+  <header><h3>{{ t.id }}</h3><span class="badge {{ t.kind }}">{{ t.kind }}</span><span class="muted">est. {{ t.est_ms | fmt_ms }}</span></header>
+  <div><b>{{ t.title }}</b></div>
+  <div class="req"><b>{{ r.id }}</b> — {{ r.text }}</div>
+  <div>Condition matrix:
+    {% for k, v in t.assignment.items() %}<code>{{ k }}</code> <span class="{{ 'ok' if v else 'no' }}">{{ "✔" if v else "✘" }}</span>{% if not loop.last %}, {% endif %}{% endfor %}
+  </div>
+  {% if t.traces[1:] %}<div class="muted">Also exercises: {{ t.traces[1:] | join(", ") }}</div>{% endif %}
+  {% for n in t.notes %}<div class="muted">Note: {{ n }}</div>{% endfor %}
+  {% for w in t.warnings %}<div class="warn">⚠ {{ w }}</div>{% endfor %}
+  <table>
+    <tr><th class="num">#</th><th>Phase</th><th>Action</th><th>Expected result</th><th class="pf">P/F</th></tr>
+    {% for s in t.steps %}{% set a, e = s | step_text %}
+    <tr class="phase-{{ s.phase }}"><td class="num">{{ loop.index }}</td><td>{{ s.phase }}</td><td>{{ a }}</td><td>{{ e }}</td><td class="pf">☐</td></tr>
+    {% endfor %}
+  </table>
+</section>
+{% endfor %}
+</body>
+</html>

@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rdtg"
+version = "0.1.0"
+description = "Requirements-driven test generation: EARS requirements -> dependency graph -> test procedures + executable tests"
+requires-python = ">=3.10"
+dependencies = ["pydantic>=2", "pyyaml", "jinja2", "pytest"]
+
+[project.optional-dependencies]
+server = ["fastapi", "uvicorn"]
+
+[project.scripts]
+rdtg = "rdtg.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["rdtg*"]
+
+[tool.setuptools.package-data]
+rdtg = ["templates/*.j2", "static/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

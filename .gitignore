@@ -1,0 +1,7 @@
+.venv/
+node_modules/
+out/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+backend/rdtg/static/

@@ -1,0 +1,35 @@
+name: Engine Controller Demo
+default_timeout_ms: 1000
+negative_window_factor: 1.0
+strategy: mcdc
+
+# Test targets: each one picks an adapter for every interface the catalog uses
+# (discrete = connection points; mil1553 / ethernet_udp = message transports).
+default_target: Simulated Hardware
+targets:
+  - name: Simulated Hardware
+    kind: simulated
+    description: ECU-7 software running on this PC; I/O box, 1553 bus and Ethernet emulated over localhost.
+    start: rig/engine_rig.py:start_desktop_ecu
+    params: {bugs: ""}
+    adapters:
+      discrete: {type: rig/engine_rig.py:IoBoxAdapter, host: 127.0.0.1, port: 7001}
+      mil1553: {type: rig/engine_rig.py:Bus1553Adapter, host: 127.0.0.1, port: 7002}
+      ethernet_udp: {type: rig/engine_rig.py:EthernetStatusAdapter, host: 127.0.0.1, port: 5005}
+
+  - name: Partially Simulated Hardware
+    kind: partial
+    description: ECU-7 software on this PC with emulated discrete I/O, but commanded over a real 1553 card.
+    start: rig/engine_rig.py:start_desktop_ecu
+    adapters:
+      discrete: {type: rig/engine_rig.py:IoBoxAdapter, host: 127.0.0.1, port: 7001}
+      mil1553: {type: rig/bench_drivers.py:Ddc1553Card, card: 0}
+      ethernet_udp: {type: rig/engine_rig.py:EthernetStatusAdapter, host: 127.0.0.1, port: 5005}
+
+  - name: Hardware
+    kind: hardware
+    description: ECU-7 unit on the HIL bench with real discrete I/O and 1553 cards.
+    adapters:
+      discrete: {type: rig/bench_drivers.py:DiscreteIOCard, device: PXI1Slot2}
+      mil1553: {type: rig/bench_drivers.py:Ddc1553Card, card: 0}
+      ethernet_udp: {type: rig/engine_rig.py:EthernetStatusAdapter, host: 0.0.0.0, port: 5005}

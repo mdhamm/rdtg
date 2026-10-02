@@ -1,0 +1,90 @@
+# Interface catalog: how the test rig stimulates and observes the software under test.
+connection_points:
+  - name: IGNITION_SW
+    kind: enum
+    values: ["OFF", "ON"]   # quoted: bare ON/OFF are booleans in YAML
+    direction: input
+    set_cost_ms: 20
+    settle_ms: 50
+    description: Cockpit ignition switch (discrete relay)
+  - name: FUEL_PUMP_OK
+    kind: discrete
+    direction: input
+    set_cost_ms: 20
+    settle_ms: 50
+    description: Fuel pump health discrete
+  - name: MAINT_MODE
+    kind: discrete
+    direction: input
+    set_cost_ms: 20
+    description: Maintenance mode jumper
+  - name: THROTTLE
+    kind: analog
+    direction: input
+    min: 0
+    max: 100
+    units: "%"
+    initial: 0
+    set_cost_ms: 30
+    settle_ms: 20
+  - name: FUEL_PRESSURE
+    kind: analog
+    direction: input
+    min: 0
+    max: 100
+    units: psi
+    initial: 45
+    set_cost_ms: 30
+    settle_ms: 20
+  - name: ENGINE_RUNNING
+    kind: discrete
+    direction: output
+  - name: FUEL_LOW
+    kind: discrete
+    direction: output
+  - name: FUEL_PUMP_CMD
+    kind: discrete
+    direction: output
+  - name: READY_LAMP
+    kind: discrete
+    direction: output
+  - name: OVERSPEED
+    kind: discrete
+    direction: output
+  - name: START_INHIBIT
+    kind: discrete
+    direction: output
+
+messages:
+  - name: CMD_MODE
+    transport: mil1553
+    direction: input
+    address: {rt: 5, sa: 3, wc: 1}
+    send_cost_ms: 10
+    fields:
+      - {name: mode, kind: enum, values: [NORMAL, MAINT, TEST]}
+  - name: ENG_STATUS
+    transport: ethernet_udp
+    direction: output
+    address: {port: 5005}
+    rate_hz: 50
+    fields:
+      - {name: rpm_valid, kind: discrete}
+      - {name: maint_active, kind: discrete}
+
+actions:
+  - name: start_engine_full
+    description: Full cold-start sequence via the ground cart
+    steps:
+      - set: {FUEL_PUMP_OK: true}
+      - set: {IGNITION_SW: "ON"}
+      - wait_until: {ENGINE_RUNNING: true}
+        timeout_ms: 5000
+    produces: {ENGINE_RUNNING: true}
+    cost_ms: 4000
+
+# Combinations that can never occur on the real system, for reasons no requirement states.
+constraints:
+  - id: PHYS-1
+    never: FUEL_PUMP_OK is false and FUEL_PRESSURE is greater than 60
+    description: line pressure above 60 psi needs a working fuel pump

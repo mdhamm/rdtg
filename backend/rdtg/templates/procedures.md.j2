@@ -1,0 +1,73 @@
+# Test Procedures — {{ config.name }}
+
+| | |
+|---|---|
+| Generated | {{ generated }} |
+| Strategy | {{ strategy }} |
+| Test cases | {{ suite.tests | length }} ({{ n_pos }} positive, {{ n_neg }} negative) |
+| Estimated execution time | {{ suite.est_ms | fmt_ms }} |
+
+## 1. Summary
+
+| Test case | Requirement | Type | Est. duration |
+|---|---|---|---|
+{% for t in suite.tests %}
+| [{{ t.id }}](#{{ t.id | lower }}) | {{ t.requirement_id }} | {{ t.kind }} | {{ t.est_ms | fmt_ms }} |
+{% endfor %}
+
+## 2. Requirements traceability
+
+| Requirement | Verified by | Used as setup path in |
+|---|---|---|
+{% for r in project.requirements %}
+| {{ r.id }} | {{ (trace.get(r.id) or []) | map(attribute="id") | join(", ") or "**NOT COVERED**" }} | {{ (setup_use.get(r.id) or []) | join(", ") or "—" }} |
+{% endfor %}
+{% if suite.issues %}
+
+### Generation issues
+{% for i in suite.issues %}
+- **{{ i.level | upper }}** {{ i.requirement_id or "" }} `{{ i.code }}` — {{ i.message }}
+{% endfor %}
+{% endif %}
+{% if suite.untestable %}
+
+### Combinations not tested
+
+The selected strategy asked for these combinations, but they cannot occur on the system:
+
+| Requirement | Combination | Why not |
+|---|---|---|
+{% for u in suite.untestable %}
+| {{ u.requirement_id }} | {% for k, v in u.assignment.items() %}`{{ k }}` {{ "✔" if v else "✘" }}{% if not loop.last %}, {% endif %}{% endfor %}{% if u.note %}<br>*{{ u.note }}*{% endif %} | {{ u.reason }} |
+{% endfor %}
+{% endif %}
+
+## 3. Test procedures
+{% for t in suite.tests %}
+{% set r = reqs[t.requirement_id] %}
+
+### {{ t.id }}
+
+**{{ t.title }}**
+
+- **Requirement:** {{ r.id }} — *{{ r.text }}*
+- **Type:** {{ t.kind }}
+- **Objective:** {% if t.kind == "positive" %}Verify the software produces the required response when all conditions are met{% else %}Verify the software does not produce the response when {{ t.assignment | dictsort | rejectattr(1) | map(attribute=0) | join(", ") }} is not met{% endif %}.
+- **Condition matrix:** {% for k, v in t.assignment.items() %}`{{ k }}` {{ "✔" if v else "✘" }}{% if not loop.last %}, {% endif %}{% endfor %}
+
+- **Also exercises:** {{ t.traces[1:] | join(", ") or "—" }}
+- **Estimated duration:** {{ t.est_ms | fmt_ms }}
+{% for n in t.notes %}
+- **Note:** {{ n }}
+{% endfor %}
+{% for w in t.warnings %}
+- ⚠ **Warning:** {{ w }}
+{% endfor %}
+
+| # | Phase | Action | Expected result | P/F |
+|---|---|---|---|---|
+{% for s in t.steps %}
+{% set a, e = s | step_text %}
+| {{ loop.index }} | {{ s.phase }} | {{ a }} | {{ e }} | ☐ |
+{% endfor %}
+{% endfor %}

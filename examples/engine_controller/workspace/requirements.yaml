@@ -1,0 +1,23 @@
+requirements:
+  - id: SRS-001
+    text: When IGNITION_SW is ON and FUEL_PUMP_OK is true, the software shall set ENGINE_RUNNING to true within 500 ms.
+  - id: SRS-002
+    text: When THROTTLE is greater than 20 and ENGINE_RUNNING is true, the software shall set ENG_STATUS.rpm_valid to true within 200 ms.
+  - id: SRS-003
+    text: If FUEL_PRESSURE is less than 20, then the software shall set FUEL_LOW to true within 100 ms.
+  - id: SRS-004
+    text: While MAINT_MODE is true, when IGNITION_SW is ON, the software shall set START_INHIBIT to true within 100 ms.
+  - id: SRS-005
+    text: The software shall set ENGINE_RUNNING to false when IGNITION_SW is OFF.
+  - id: SRS-006
+    text: When CMD_MODE.mode is MAINT, the software shall set ENG_STATUS.maint_active to true between 20 and 80 ms.
+  - id: SRS-007
+    text: While ENGINE_RUNNING is true and IGNITION_SW is ON, when THROTTLE is greater than 95, the software shall set OVERSPEED to true within 100 ms.
+  - id: SRS-008
+    text: When IGNITION_SW is ON, the software shall set FUEL_PUMP_CMD to true within 50 ms.
+  - id: SRS-009
+    text: When IGNITION_SW is OFF, the software shall set FUEL_PUMP_CMD to false within 50 ms.
+  - id: SRS-010
+    text: When IGNITION_SW is ON and FUEL_PUMP_CMD is true, the software shall set READY_LAMP to true within 100 ms.
+  - id: SRS-011
+    text: When ENGINE_RUNNING is true and IGNITION_SW is OFF, the software shall set START_INHIBIT to true within 100 ms.
